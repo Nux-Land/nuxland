@@ -47,9 +47,7 @@ export async function connect_ws(is_opened_,set_is_opened_) {
             try {
                 websocket.send("client")
                 if (cookie_get("logged_in")=="true") {
-                    websocket.send("login")
-                    websocket.send(cookie_get("username"))
-                    websocket.send(cookie_get("password"))
+                    websocket.send("login/"+cookie_get("username")+"/"+cookie_get("password"))
                     if (await recv()=="false") {
                         set_is_opened({"opened":true,"auth":false})
                         cookie_set("logged_in","")

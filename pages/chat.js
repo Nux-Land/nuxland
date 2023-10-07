@@ -28,106 +28,142 @@ function cookie_set(key,val) {
 
 export default function Home() {
     const [project_create_modal,setProjectCreateModalVisibility]=useState(false)
+    const [opened_channel,setOpenedChannel]=useState("")
+    const [current_chats,setCurrentChats]=useState([])
+    const [username,setUsername]=useState("")
+    const [server_details,setServerDetails]=useState({"name":"","owner":"","collaborators":"","files":{},
+    "live":{},"channels":[],"fund_target":0,"fund_done":0,
+    "meeting_id":"","versions":{},"votes":0,"roles":[],
+    "visibility":true})
     var [is_opened__,set_is_opened__]=useState({"opened":false,"auth":false})
+    var send_msg=""
     connect_ws(is_opened__,set_is_opened__)
-    const [auth_type,setAuthType]=useState("login")
-    const [first,setFirst]=useState(true)
-    const [selected_feature,setSelected_Feature]=useState("Projects")
-    var profile_base={
-        "name":"",
-        "id":"",
-        "address":"",
-        "skills":[],
-        "projects":[],
-        "respect":0,
-        "image":base_img,
-        "date_joined":"",
-        "invites":[]
-    }
-    const [personal_user_data,set_personal_user_data]=useState(profile_base)
-    const [profile,setProfile]=useState(profile_base)
     const router=useRouter()
-    if (first) {
-        var timeout=setTimeout(async ()=>{
-            clearTimeout(timeout)
-            while (is_opened==0 || is_opened["opened"]==false) {
-                await new Promise(r => setTimeout(r, 100))
+    const [times,setTimes]=useState(0)
+    useEffect(()=>{
+        var a=async ()=>{
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            if (is_opened.opened==false) {
+                setTimes(times+1)
+                return ()=>{}
             }
-            await send("profile")
-            if (router.query.username==undefined) {
-                await send(cookie_get("username"))
+            if (!is_opened.auth) {
+                router.push("/")
             } else {
-                await send(router.query.username)
-            }
-            var data=await recv()
-            var parsed_data=JSON.parse(data)
-            if (JSON.stringify(parsed_data)!="{}") {
-                setProfile(parsed_data)
-            }
-
-            await send("profile")
-            await send(cookie_get("username"))
-            var data=await recv()
-            var parsed_data=JSON.parse(data)
-            if (JSON.stringify(parsed_data)!="{}") {
-                set_personal_user_data(parsed_data)
-            }
-        },100)
-        setFirst(false)
-    }
-    function get_feature_ui() {
-        if (selected_feature=="Projects") {
+                await send("project_details/"+router.query.id)
+                var data=await recv()
+                if (data=="false") {
+                    setTimes(times+1)
+                    return ()=>{}
+                }
+                if (JSON.parse(data)!=server_details) {
+                    setServerDetails(JSON.parse(data))
+                }
+                if (opened_channel!="") {
+                    await send("channel_messages/"+server_details.name+"/"+opened_channel)
+                    var messages=await recv()
+                    console.log(messages)
+                    setCurrentChats(JSON.parse(messages))
+                }
+                setTimes(times+1)
+        }}
+        a()
+        return ()=>{}
+    },[send_msg,times])
+    function chat_render() {
+        if (opened_channel=="") {
             return (
                 <>
-                <Spacer y={.5}></Spacer>
-                <div>
-                    <Button css={{float:"right"}} onClick={()=>{
-                        setProjectCreateModalVisibility(true)
-                    }}>Create Project</Button>
+                <div className="wrapper" style={{height:"100vh",width:"80vw"}}>
+                    <div>
+                        <div className="wrapper">
+                            <img src={base_img}></img>
+                        </div>
+                        <Spacer y={2}></Spacer>
+                        <Text h2 className="wrapper">Click a channel to open chats</Text>
+                    </div>
                 </div>
-                <Spacer y={3}></Spacer>
-                <div>
-                    {profile.projects.map((x)=>{
-                        return (
-                            <>
-                            <Card isPressable css={{}}>
-                                <Card.Header css={{width:"100%"}}>
-                                    <div style={{width:"5vw"}}>
-                                        <img src={base_img} height={"40vw"}></img>
-                                    </div>
-                                    <Spacer></Spacer>
-                                    <div style={{width:"10vw"}}>
-                                    <Text h3>{x}</Text>
-                                    </div>
-                                    <div style={{width:"20vw",marginLeft:"25vw"}}>
-                                        <Button css={{width:"20%",float:"right"}}>Open</Button>
-                                    </div>
-                                    <Spacer x={.5}></Spacer>
-                                    <div style={{width:"20vw"}}>
-                                        <Button css={{width:"20%",float:"right"}} color={"error"}>Leave</Button>
-                                    </div>
-                                </Card.Header>
-                            </Card>
+                </>
+            )
+        } else {
+            return (
+                <>
+                <div className="wrapper" style={{height:"100vh",width:"80vw"}}>
+                    <div style={{height:"100vh",width:"80vw"}}>
+                        <Spacer></Spacer>
+                        <div style={{height:"90vh",width:"80vw",padding:"1vw"}}>
+                            {current_chats.map((x)=>{
+                                return (
+                                    <>
+                                    <Card css={{mw:"500px",width:"450px",float:(x.sender.includes("__owner") ? "left" : "right")}}>
+                                        <Card.Header>
+                                            <Text css={{fontSize:20}} color="primary">{x.sender.split("__owner")[0]}</Text> 
+                                            <Spacer x={.4}></Spacer>
+                                            on {x.timestamp.slice(0,"2023-10-08 03:00:09".length)}
+                                        </Card.Header>
+                                        <Card.Body>
+                                            {x.content}
+                                        </Card.Body>
+                                    </Card>
+                                    <Spacer y={7}></Spacer>
+                                    </>
+                                )
+                            })}
+                        </div>
+                        <div style={{height:"10vh",width:"80vw",padding:"1vw"}} className="wrapper">
+                            <Input placeholder="Type your message here" bordered width="90%" id="data_input"></Input>
                             <Spacer></Spacer>
-                            </>
-                        )
-                    })}
+                            <Button auto onClick={()=>{
+                                send("send_message/"+server_details.name+"/"+opened_channel+"/"+document.getElementById("data_input").value)
+                            }}>Send</Button>
+                        </div>
+                    </div>
                 </div>
                 </>
             )
         }
     }
-    console.log(is_opened)
     if (!is_opened.auth) {
-        setTimeout(()=>{
-            if (!is_opened.auth) {
-                router.push("/")
-            }
-        },500)
+        return
     } else {
+        if (username=="") {
+            setUsername(cookie_get("username"))
+        }
         return (
             <>
-                
+                <Row css={{height:"100vh",width:"100vw"}}>
+                    <div style={{"width":"20vw",height:"100vh",backgroundColor:"black",padding:"1vh",borderRight:"1px solid #111"}}>
+                        <Row className="wrapper">
+                            <div style={{width:"95%"}} className="wrapper">
+                            <Text h3 className="vertical" color="primary">{server_details.name}</Text>
+                            </div>
+                            <div style={{width:"5%"}} className="wrapper">
+                            <a style={{float:"right"}} onClick={()=>{
+                                
+                            }}><Text h4>+</Text></a>
+                            </div>
+                        </Row>
+                        <div>
+                            <div style={{marginTop:"1.1vh"}}>
+                                {[...["","","","files"],...server_details.channels].map((x)=>{
+                                    return (
+                                        <>
+                                        <a onClick={()=>{
+                                            setOpenedChannel(x)
+                                        }}>
+                                            <Text color={(x==opened_channel) ? "black" : "white"} h5 className="vertical" css={(x=="") ? {} : {border:"2.5px solid #fff",borderRadius:"10px",color:(x==opened_channel) ? "black" : "white",backgroundColor:(x==opened_channel) ? "white" : "black"}}>{(x!="") ? "#" : ""}{x.split("|")[0]}</Text>
+                                        </a>
+                                        </>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                        
+                    </div>
+                    <div style={{"height":"100vh","width":"80vw",backdropFilter:"blur(2.5px)"}}>
+                        {chat_render()}
+                    </div>
+                </Row>
             </>
         )
     }

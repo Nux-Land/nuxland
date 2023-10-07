@@ -2,13 +2,14 @@ import asyncio,time,json,websockets,litedb,hashlib,random,threading,ngrok,uuid,r
 ngrok.set_auth_token(open("ngrok_token").read().split("=")[1])
 from websockets.server import serve
 from websockets.sync import client as wsclient
-from datetime import date
+from datetime import datetime
 
 tunnel=ngrok.connect(8080)
 
 nodes=litedb.get_conn("nodes")
 users=litedb.get_conn("users")
 projects=litedb.get_conn("projects")
+channels=litedb.get_conn("channels")
 
 class Message:
     def __init__(self,sender,content,timestamp) -> None:
@@ -19,8 +20,8 @@ class Message:
         return {"sender":self.sender,"content":self.content,"timestamp":self.timestamp}
 
 class Channel:
-    def __init__(self,id,name,messages=[]) -> None:
-        self.id=id
+    def __init__(self,name,messages=[]) -> None:
+        self.id=uuid.uuid4().__str__()
         self.name=name
         self.messages=messages
     def json(self):
@@ -34,7 +35,10 @@ class Project:
         self.collaborators=[owner]
         self.files={}
         self.live=""
-        self.channels=[]
+        new_channels=[Channel("general")]
+        self.channels=[x.name+"|"+x.id for x in new_channels]
+        for x in new_channels:
+            channels.set(x.name+"|"+x.id,x.json())
         self.fund_target=0
         self.fund_done=0
         self.meeting_id=""
@@ -59,7 +63,7 @@ class User:
         self.respect=0
         self.invites=[]
         if date_joined=="":
-            self.joined_on=date.today().__str__()
+            self.joined_on=datetime.now().__str__()
         else:
             self.joined_on=date_joined
         if image=="":
@@ -131,12 +135,15 @@ async def client_thread(websocket: wsclient.ClientConnection):
             return
         user_details=None
         while id in connections:
-            message=await recv(id)
-            print(message)
-            if message=="register":
-                user_name=await recv(id)
-                password=hash(await recv(id))
-                image=await recv(id)
+            message=(await recv(id))
+            if message==None:
+                raise Exception("")
+            else:
+                message=message.split("/")
+            if message[0]=="register":
+                user_name=message[1]
+                password=hash(message[2])
+                image=message[3]
                 users_list=users.get("users")
                 if user_name not in users_list:
                     users.set(user_name,User(user_name,password,image=image).json())
@@ -146,9 +153,9 @@ async def client_thread(websocket: wsclient.ClientConnection):
                     connections[id]["auth"]=True
                 else:
                     await websocket.send("false")
-            elif message=="login":
-                user_name=await recv(id)
-                password=await recv(id)
+            elif message[0]=="login":
+                user_name=message[1]
+                password=message[2]
                 users_list=users.get("users")
                 if user_name not in users_list:
                     await websocket.send("false")
@@ -160,9 +167,9 @@ async def client_thread(websocket: wsclient.ClientConnection):
                     connections[id]["auth"]=True
                 else:
                     await websocket.send("false")
-            elif message=="profile":
+            elif message[0]=="profile":
                 if connections[id]["auth"]==True:
-                    username_=await websocket.recv()
+                    username_=message[1]
                     user_data=users.get(username_)
                     time.sleep(0.01)
                     try:
@@ -171,9 +178,9 @@ async def client_thread(websocket: wsclient.ClientConnection):
                         await websocket.send("{}")
                 else:
                     await websocket.send("{}")
-            elif message=="create_project":
+            elif message[0]=="create_project":
                 if connections[id]["auth"]==True:
-                    project_name=await recv(id)
+                    project_name=message[1]
                     user_data=users.get(user_name)
                     if projects.get("projects_list") in [None,False]:
                         projects.set("projects_list",[])
@@ -185,13 +192,66 @@ async def client_thread(websocket: wsclient.ClientConnection):
                         projects.set("projects_list",projects_list)
                         user_data["projects"].append(project_name)
                         users.set(user_name,user_data)
-                        projects.set(project_name,Project(user_name,project_name,True))
+                        projects.set(project_name,Project(user_name,project_name,True).json())
                         await websocket.send("true")
                 else:
                     await websocket.send("false")
-            elif message=="text":
+            elif message[0]=="project_details":
+                if connections[id]["auth"]==True:
+                    project_name=message[1]
+                    user_data=users.get(user_name)
+                    if project_name in user_data["projects"]:
+                        await websocket.send(json.dumps(projects.get(project_name)))
+                    else:
+                        await websocket.send("false")
+                else:
+                    await websocket.send("false")
+            elif message[0]=="channel_messages":
+                if connections[id]["auth"]==True:
+                    project_name=message[1]
+                    channel_id=message[2]
+                    user_data=users.get(user_name)
+                    print(user_data["projects"],project_name)
+                    if project_name in user_data["projects"]:
+                        print(channel_id,projects.get(project_name)["channels"])
+                        if channel_id in projects.get(project_name)["channels"]:
+                            formatted_messages=[]
+                            for x in channels.get(channel_id)["messages"][-100:]:
+                                if x["sender"]==user_name:
+                                    x["sender"]+="__owner"
+                                formatted_messages.append(x)
+                            await websocket.send(json.dumps(formatted_messages))
+                        else:
+                            await websocket.send("false")
+                    else:
+                        await websocket.send("false")
+                else:
+                    await websocket.send("false")
+            elif message[0]=="send_message":
+                if connections[id]["auth"]==True:
+                    print(1)
+                    project_name=message[1]
+                    channel_id=message[2]
+                    data=message[3]
+                    user_data=users.get(user_name)
+                    if project_name in user_data["projects"]:
+                        print(2,channel_id,projects.get(project_name)["channels"])
+                        if channel_id in projects.get(project_name)["channels"]:
+                            print(3)
+                            channel=channels.get(channel_id)
+                            now=datetime.now()
+                            channel["messages"].append(Message(user_name,data,now.__str__()).json())
+                            channels.set(channel_id,channel)
+                            await websocket.send("true")
+                        else:
+                            await websocket.send("false")
+                    else:
+                        await websocket.send("false")
+                else:
+                    await websocket.send("false")
+            elif message[0]=="text":
                 print(await recv(id))
-            elif message=="load" and admin:
+            elif message[0]=="load" and admin:
                 await websocket.send(str(len(connections.keys())))
             else:
                 return

@@ -47,40 +47,42 @@ export default function Home() {
     const [personal_user_data,set_personal_user_data]=useState(profile_base)
     const [profile,setProfile]=useState(profile_base)
     const router=useRouter()
-    if (first) {
+    useEffect(()=>{
         var timeout=setTimeout(async ()=>{
             clearTimeout(timeout)
             while (is_opened==0 || is_opened["opened"]==false) {
                 await new Promise(r => setTimeout(r, 100))
             }
-            await send("profile")
             if (router.query.username==undefined) {
-                await send(cookie_get("username"))
+                await send("profile"+"/"+cookie_get("username"))
             } else {
-                await send(router.query.username)
+                await send("profile"+"/"+router.query.username)
             }
+            
+            console.log(router.query.username,"!!!",router.query)
+            
             var data=await recv()
             var parsed_data=JSON.parse(data)
             if (JSON.stringify(parsed_data)!="{}") {
+                console.log(parsed_data)
                 setProfile(parsed_data)
             }
 
-            await send("profile")
-            await send(cookie_get("username"))
+            await send("profile/"+cookie_get("username"))
             var data=await recv()
             var parsed_data=JSON.parse(data)
             if (JSON.stringify(parsed_data)!="{}") {
                 set_personal_user_data(parsed_data)
             }
-        },100)
-        setFirst(false)
-    }
+        },400)
+        return ()=>{clearTimeout(timeout)}
+    },[is_opened])
     function get_feature_ui() {
         if (selected_feature=="Projects") {
             return (
                 <>
                 <Spacer y={.5}></Spacer>
-                <div>
+                <div style={{"marginRight":"2vw"}}>
                     <Button css={{float:"right"}} onClick={()=>{
                         setProjectCreateModalVisibility(true)
                     }}>Create Project</Button>
@@ -100,7 +102,9 @@ export default function Home() {
                                     <Text h3>{x}</Text>
                                     </div>
                                     <div style={{width:"20vw",marginLeft:"25vw"}}>
-                                        <Button css={{width:"20%",float:"right"}}>Open</Button>
+                                        <Button css={{width:"20%",float:"right"}} onClick={()=>{
+                                            window.location=window.location+("/chat?id="+x)
+                                        }}>Open</Button>
                                     </div>
                                     <Spacer x={.5}></Spacer>
                                     <div style={{width:"20vw"}}>
@@ -117,7 +121,6 @@ export default function Home() {
             )
         }
     }
-    console.log(is_opened)
     if (!is_opened.auth) {
         return (
             <>
@@ -148,12 +151,9 @@ export default function Home() {
                         <Spacer y={1.5}></Spacer>
                         <div className="wrapper">
                             <Button onClick={async ()=>{
-                                send(auth_type)
                                 var username=document.getElementById("username").value
                                 var password=document.getElementById("password").value
-                                await send(username)
-                                await send(password)
-                                await send(base_img)
+                                send(auth_type+"/"+username+"/"+password+"/"+base_img)
                                 if (await recv()=="true") {
                                     cookie_set("username",username)
                                     cookie_set("password",password)
@@ -188,7 +188,7 @@ export default function Home() {
                         </div>
                         <Spacer></Spacer>
                         <div className="wrapper">
-                            <Text h2>{profile["name"]}</Text>
+                            <Text h2 css={{letterSpacing:"$wide"}}>{profile["name"]}</Text>
                         </div>
                         <Row>
                             <Card css={{padding:"$2"}}>
@@ -240,7 +240,7 @@ export default function Home() {
                                 return <a style={{marginRight:"2.5vw"}} onClick={()=>{
                                     setSelected_Feature(x)
                                 }}>
-                                    <Text h2 size={30} color={(selected_feature==x) ? "primary" : "white"}>{x}</Text>
+                                    <Text h2 size={30} css={{fontWeight:600}} color={(selected_feature==x) ? "primary" : "white"}>{x}</Text>
                                     </a>
                             })}
                         </div>
@@ -271,12 +271,13 @@ export default function Home() {
                         </div>
                         <Spacer></Spacer>
                         <div className="wrapper">
-                            <Button css={{width:"50%"}} onClick={async ()=>{
-                                await send("create_project")
-                                await send(document.getElementById("project_name").value)
-                                if (await recv()=="true") {
-                                    window.location=window.location
-                                }
+                            <Button css={{width:"50%"}} onClick={()=>{
+                                send("create_project/"+document.getElementById("project_name").value)
+                                setInterval(()=>{
+                                    (()=>{
+                                        window.location=window.location
+                                    })()
+                                },100)
                             }}>Create Project</Button>
                         </div>
                     </Modal.Body>

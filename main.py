@@ -57,7 +57,7 @@ class User:
         self.projects=[]
         self.respect=0
         if date_joined=="":
-            self.joined_on=date.today()
+            self.joined_on=date.today().__str__()
         else:
             self.joined_on=date_joined
         if image=="":

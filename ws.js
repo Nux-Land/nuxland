@@ -71,7 +71,6 @@ export async function connect_ws() {
         })
         websocket.addEventListener("close",()=>{
             set_is_opened({"opened":false,"auth":false})
-            set_is_authenticated(false)
             websocket=false
         })
         return websocket

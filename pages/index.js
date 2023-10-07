@@ -101,10 +101,10 @@ export default function Home() {
                         <Row>
                             <Card css={{padding:"$2"}}>
                                 <Card.Header>
-                                    <Text h3 css={{fontWeight:400}} className="vertical">No. of Projects</Text>
+                                    <Text h3 css={{fontWeight:400}} className="vertical">Date Joined</Text>
                                 </Card.Header>
                                 <Card.Body css={{"marginTop":"-4vh"}}>
-                                    <Text h3 color="primary">300</Text>
+                                    <Text h3 color="primary">10</Text>
                                 </Card.Body>
                             </Card>
                             <Spacer y={.5} x={0.5}></Spacer>
@@ -113,7 +113,31 @@ export default function Home() {
                                     <Text h3 css={{fontWeight:400}} className="vertical">Reputation</Text>
                                 </Card.Header>
                                 <Card.Body css={{"marginTop":"-4vh"}}>
-                                    <Text h3 color="primary">300</Text>
+                                    <Text h3 color="primary">1000000</Text>
+                                </Card.Body>
+                            </Card>
+                        </Row>
+                        <Spacer></Spacer>
+                        <Row>
+                        <Card css={{padding:"$2"}}>
+                                <Card.Header>
+                                    <Text h3 css={{fontWeight:400}} className="vertical">Skills</Text>
+                                </Card.Header>
+                                <Card.Body css={{"marginTop":"-4vh"}}>
+                                    {["Js","Ruby","Python","Js","Ruby","Python",].slice(0,6).map((x)=>{
+                                        return <Text h3 color="primary">{x}</Text>
+                                    })}
+                                </Card.Body>
+                            </Card>
+                            <Spacer y={.5} x={0.5}></Spacer>
+                            <Card css={{padding:"$2"}}>
+                                <Card.Header>
+                                    <Text h3 css={{fontWeight:400}} className="vertical">Skills</Text>
+                                </Card.Header>
+                                <Card.Body css={{"marginTop":"-4vh"}}>
+                                    {["Js","Ruby","Python","Js","Ruby","Python",].slice(0,6).map((x)=>{
+                                        return <Text h3 color="primary">{x}</Text>
+                                    })}
                                 </Card.Body>
                             </Card>
                         </Row>

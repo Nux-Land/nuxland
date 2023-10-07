@@ -2,6 +2,7 @@ import asyncio,time,json,websockets,litedb,hashlib,random,threading,ngrok,uuid,r
 ngrok.set_auth_token(open("ngrok_token").read().split("=")[1])
 from websockets.server import serve
 from websockets.sync import client as wsclient
+from datetime import date
 
 tunnel=ngrok.connect(8080)
 
@@ -47,7 +48,7 @@ class Project:
                 "visibility":self.visibility}
 
 class User:
-    def __init__(self,name,password,skills=[],image="",address="") -> None:
+    def __init__(self,name,password,skills=[],image="",address="",date_joined="") -> None:
         self.name=name
         self.password=password
         self.id=uuid.uuid4().__str__()
@@ -55,6 +56,10 @@ class User:
         self.skills=skills
         self.projects=[]
         self.respect=0
+        if date_joined=="":
+            self.joined_on=date.today()
+        else:
+            self.joined_on=date_joined
         if image=="":
             self.image="https://api.dicebear.com/6.x/adventurer/svg?seed="
         else:
@@ -68,7 +73,8 @@ class User:
             "skills":self.skills,
             "projects":self.projects,
             "respect":self.respect,
-            "image":self.image
+            "image":self.image,
+            "date_joined":self.joined_on
         }
 
 def hash(x):

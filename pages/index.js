@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { Text, Link, Navbar, Spacer, Divider, Button, Input, Card} from "@nextui-org/react";
+import { Text, Link, Navbar, Spacer, Divider, Button, Input, Card, Row } from "@nextui-org/react";
 import { connect_ws, is_opened, recv, send,  } from "../ws"
 
 function cookie_get(key) {
@@ -29,13 +29,18 @@ export default function Home() {
     return (
         <>
             <Head>
-                <title></title>
+                <title>Nuxland</title>
             </Head>
-            {is_opened.toString()}
-            <Button onClick={()=>{
-                send("text")
-                send("hi")
-            }}></Button>
+            <div style={{height:"100vh",width:"100vw",backgroundImage:"url('bg.png')",backgroundSize:"100vh"}} className="wrapper">
+                <Card css={{bgBlur:"#0f111466",padding:"$5",mw:"50vw"}}>
+                    <Card.Header>
+                        <Row>
+                        <Text h2 color="primary">Nuxland</Text>
+                        <img src="Vector.svg" height={"10%"}></img>
+                        </Row>
+                    </Card.Header>
+                </Card>
+            </div>
         </> 
     )
 }

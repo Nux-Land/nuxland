@@ -1,5 +1,6 @@
 import axios from "axios"
 import { useState } from "react"
+var debug=true
 
 var websocket=false
 var last_message={"id":"","data":""}
@@ -10,9 +11,13 @@ export async function connect_ws() {
         [is_opened,set_is_opened]=useState(false)
     }
     if (websocket==false) {
-        var node_url=(await axios.get("https://nuxland-api.vercel.app"))
+        if (debug) {
+            var node_url="ws://127.0.0.1:8080"
+        } else {
+            var node_url=(await axios.get("https://nuxland-api.vercel.app")).data
+        }
         if (websocket==false) {
-            var x=new WebSocket(node_url.data)
+            var x=new WebSocket(node_url)
             if (websocket==false) {
                 websocket=x
             }

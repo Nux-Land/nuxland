@@ -1,5 +1,5 @@
 import asyncio,time,json,websockets,litedb,hashlib,random,threading,ngrok,uuid,requests
-ngrok.set_auth_token(open("token").read().split("=")[1])
+ngrok.set_auth_token(open("ngrok_token").read().split("=")[1])
 from websockets.server import serve
 from websockets.sync import client as wsclient
 

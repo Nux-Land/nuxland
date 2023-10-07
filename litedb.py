@@ -40,15 +40,19 @@ def get_conn(database):
 
 def collection_set(collection,key,val):
     if collection_get(collection,key)==None:
-        collection.insert_one({"_id":key,"val":val})
+        collection.insert_one({"_id":key,"val":json.dumps(val)})
     else:
-        collection.update_one({"_id":key},{"$set":{"val":val}})
+        collection.update_one({"_id":key},{"$set":{"val":json.dumps(val)}})
 
 def collection_get(collection,key):
     res=collection.find_one({"_id":key})
     if res==None:
         return None
-    return res["val"]
+    val=res["val"]
+    try:
+        return json.loads(val)
+    except:
+        return val
 
 def collection_get_all(collection):
     collection_find=list(collection.find())

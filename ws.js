@@ -28,12 +28,9 @@ function cookie_set(key,val) {
     } catch {}
 }
 
-export async function connect_ws() {
-    if (is_opened==0) {
-        [is_opened,set_is_opened]=useState({"opened":false,"auth":false})
-    } else {
-        [is_opened,set_is_opened]=useState(is_opened)
-    }
+export async function connect_ws(is_opened_,set_is_opened_) {
+    is_opened=is_opened_
+    set_is_opened=set_is_opened_
     if (websocket==false) {
         if (debug) {
             var node_url="ws://127.0.0.1:8080"
@@ -94,6 +91,7 @@ export async function send(data) {
             break
         } catch {
             await connect_ws()
+            await await new Promise(r => setTimeout(r, 100))
         }
     }
 }

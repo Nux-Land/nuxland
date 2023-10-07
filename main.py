@@ -8,6 +8,7 @@ tunnel=ngrok.connect(8080)
 
 nodes=litedb.get_conn("nodes")
 users=litedb.get_conn("users")
+projects=litedb.get_conn("projects")
 
 class Message:
     def __init__(self,sender,content,timestamp) -> None:
@@ -56,6 +57,7 @@ class User:
         self.skills=skills
         self.projects=[]
         self.respect=0
+        self.invites=[]
         if date_joined=="":
             self.joined_on=date.today().__str__()
         else:
@@ -74,7 +76,8 @@ class User:
             "projects":self.projects,
             "respect":self.respect,
             "image":self.image,
-            "date_joined":self.joined_on
+            "date_joined":self.joined_on,
+            "invites":self.invites
         }
 
 def hash(x):
@@ -134,11 +137,10 @@ async def client_thread(websocket: wsclient.ClientConnection):
                 user_name=await recv(id)
                 password=hash(await recv(id))
                 image=await recv(id)
-                users_list=json.loads(users.get("users"))
-                print(users_list)
+                users_list=users.get("users")
                 if user_name not in users_list:
                     users.set(user_name,User(user_name,password,image=image).json())
-                    users.set("users",json.dumps(users_list+[user_name]))
+                    users.set("users",users_list+[user_name])
                     user_details=User(user_name,password)
                     await websocket.send("true")
                     connections[id]["auth"]=True
@@ -147,7 +149,7 @@ async def client_thread(websocket: wsclient.ClientConnection):
             elif message=="login":
                 user_name=await recv(id)
                 password=await recv(id)
-                users_list=json.loads(users.get("users"))
+                users_list=users.get("users")
                 if user_name not in users_list:
                     await websocket.send("false")
                     continue
@@ -156,6 +158,35 @@ async def client_thread(websocket: wsclient.ClientConnection):
                     user_details=User(users_data["name"],users_data["password"])
                     await websocket.send("true")
                     connections[id]["auth"]=True
+                else:
+                    await websocket.send("false")
+            elif message=="profile":
+                if connections[id]["auth"]==True:
+                    username_=await websocket.recv()
+                    user_data=users.get(username_)
+                    time.sleep(0.01)
+                    try:
+                        await websocket.send(json.dumps(user_data))
+                    except Exception as e:
+                        await websocket.send("{}")
+                else:
+                    await websocket.send("{}")
+            elif message=="create_project":
+                if connections[id]["auth"]==True:
+                    project_name=await recv(id)
+                    user_data=users.get(user_name)
+                    if projects.get("projects_list") in [None,False]:
+                        projects.set("projects_list",[])
+                    projects_list=projects.get("projects_list")
+                    if project_name in projects_list:
+                        await websocket.send("false")
+                    else:
+                        projects_list.append(project_name)
+                        projects.set("projects_list",projects_list)
+                        user_data["projects"].append(project_name)
+                        users.set(user_name,user_data)
+                        projects.set(project_name,Project(user_name,project_name,True))
+                        await websocket.send("true")
                 else:
                     await websocket.send("false")
             elif message=="text":
@@ -175,11 +206,11 @@ print("Tunnel on",tunnel.url())
 
 def adder():
     while True:
-        prev=json.loads(nodes.get("nodes"))
+        prev=nodes.get("nodes")
         requests.get(tunnel.url(),headers={"ngrok-skip-browser-warning":"true"})
         if tunnel.url().replace("https","wss") not in prev:
             prev+=[tunnel.url().replace("https","wss")]
-            nodes.set("nodes",json.dumps(prev))
+            nodes.set("nodes",prev)
         time.sleep(5)
 
 async def x(w):

@@ -154,7 +154,7 @@ async def client_thread(websocket: wsclient.ClientConnection):
                     await websocket.send("false")
                     continue
                 users_data=users.get(user_name)
-                if users_data["password"]==hash(password):
+                if users_data!=None and users_data["password"]==hash(password):
                     user_details=User(users_data["name"],users_data["password"])
                     await websocket.send("true")
                     connections[id]["auth"]=True

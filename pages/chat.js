@@ -119,7 +119,11 @@ export default function Home() {
     }
     console.log(is_opened)
     if (!is_opened.auth) {
-        setTimeout(()=>{})
+        setTimeout(()=>{
+            if (!is_opened.auth) {
+                router.push("/")
+            }
+        },500)
     } else {
         return (
             <>

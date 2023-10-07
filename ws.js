@@ -6,9 +6,33 @@ var websocket=false
 var last_message={"id":"","data":""}
 export var [is_opened,set_is_opened]=[0,0]
 
+function cookie_get(key) {
+    try {
+        var cookies={}
+        for (var x in document.cookie.split("; ")) {
+            var raw_data=document.cookie.split("; ")[x].split("=")
+            cookies[raw_data[0]]=raw_data[1]
+        }
+        if (key in cookies) {
+            return cookies[key]
+        }
+        return ""
+    } catch {
+        return ""
+    }
+}
+
+function cookie_set(key,val) {
+    try {
+        document.cookie=`${key}=${val};expires=Thu, 01 Jan 2049 00:00:00 UTC`
+    } catch {}
+}
+
 export async function connect_ws() {
     if (is_opened==0) {
-        [is_opened,set_is_opened]=useState(false)
+        [is_opened,set_is_opened]=useState({"opened":false,"auth":false})
+    } else {
+        [is_opened,set_is_opened]=useState(is_opened)
     }
     if (websocket==false) {
         if (debug) {
@@ -22,20 +46,33 @@ export async function connect_ws() {
                 websocket=x
             }
         }
-        websocket.addEventListener("open",()=>{
+        websocket.addEventListener("open",async ()=>{
             try {
                 websocket.send("client")
+                if (cookie_get("logged_in")=="true") {
+                    websocket.send("login")
+                    websocket.send(cookie_get("username"))
+                    websocket.send(cookie_get("password"))
+                    if (await recv()=="false") {
+                        set_is_opened({"opened":true,"auth":false})
+                        cookie_set("logged_in","")
+                    } else {
+                        console.log("areee")
+                        set_is_opened({"opened":true,"auth":true})
+                    }
+                }
             } catch {
                 return
             }
-            set_is_opened(true)
         })
         websocket.addEventListener("message",(event)=>{
             last_message["data"]=event.data
             last_message["id"]=crypto.randomUUID()
         })
         websocket.addEventListener("close",()=>{
-            set_is_opened(false)
+            set_is_opened({"opened":false,"auth":false})
+            set_is_authenticated(false)
+            websocket=false
         })
         return websocket
     } else {
@@ -55,10 +92,9 @@ export async function send(data) {
     while (true) {
         try {
             websocket.send(data)
-            console.log("hi")
             break
         } catch {
-            connect_ws()
+            await connect_ws()
         }
     }
 }

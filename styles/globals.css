@@ -3,9 +3,10 @@
 
 html
 body {
-  background: #000000;
+  background-image: url('../public/bg.png');
+  background-size: 200vh;
   margin: 0;
-  font-family: 'Roboto Mono', monospace;
+  font-family: 'Groteska', monospace;
 }
 
 .text {
@@ -306,4 +307,47 @@ opacity: 0.7;
 
 .Toastify__progress-bar--info {
   background-color: #006FEE !important;
+}
+
+@font-face {
+  font-family: "Groteska";
+  src: url("../fonts/Groteska-Thin.otf") format("opentype");
+  font-weight: 100;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Groteska";
+  src: url("../fonts/Groteska-Light.otf") format("opentype");
+  font-weight: 200;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Groteska";
+  src: url("../fonts/Groteska-Book.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Groteska";
+  src: url("../fonts/Groteska-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Groteska";
+  src: url("../fonts/Groteska-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Groteska";
+  src: url("../fonts/Groteska-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Groteska";
+  src: url("../fonts/Groteska-Heavy.otf") format("opentype");
+  font-weight: 900;
+  font-style: normal;
 }

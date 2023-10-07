@@ -50,7 +50,7 @@ class User:
     def __init__(self,name,password,skills=[],image="",address="") -> None:
         self.name=name
         self.password=password
-        self.id=uuid.uuid4()
+        self.id=uuid.uuid4().__str__()
         self.address=address
         self.skills=skills
         self.projects=[]
@@ -67,7 +67,8 @@ class User:
             "address":self.address,
             "skills":self.skills,
             "projects":self.projects,
-            "respect":self.respect
+            "respect":self.respect,
+            "image":self.image
         }
 
 def hash(x):
@@ -122,11 +123,13 @@ async def client_thread(websocket: wsclient.ClientConnection):
         user_details=None
         while id in connections:
             message=await recv(id)
+            print(message)
             if message=="register":
                 user_name=await recv(id)
                 password=hash(await recv(id))
                 image=await recv(id)
                 users_list=json.loads(users.get("users"))
+                print(users_list)
                 if user_name not in users_list:
                     users.set(user_name,User(user_name,password,image=image).json())
                     users.set("users",json.dumps(users_list+[user_name]))

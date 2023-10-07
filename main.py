@@ -244,12 +244,12 @@ async def client_thread(websocket: wsclient.ClientConnection):
                     new_projects={}
                     for x in projects.get("projects_list"):
                         project_data=projects.get(x)
-                        if (project_data["visibility"]):
-                            new_projects[x]={"name":x,"descripton":project_data["description"]}
+                        new_projects[x]={"name":x,"description":project_data["description"]}
                     user_data["projects"]=new_projects
                     user_data["invites"]=invites.get(username_)
                     time.sleep(0.01)
                     try:
+                        print(user_data["projects"])
                         await websocket.send(json.dumps(user_data))
                     except Exception as e:
                         await websocket.send("{}")

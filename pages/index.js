@@ -72,11 +72,12 @@ export default function Home() {
             var data=await recv()
             var parsed_data=JSON.parse(data)
             if (JSON.stringify(parsed_data)!="{}") {
+                console.log(parsed_data,selected_feature)
                 set_personal_user_data(parsed_data)
             }
         },400)
         return ()=>{clearTimeout(timeout)}
-    },[is_opened["auth"],is_opened["connected"]])
+    },[is_opened["auth"],is_opened["connected"],selected_feature])
     function get_feature_ui() {
         if (selected_feature=="Projects" || selected_feature=="Open Projects") {
             return (
@@ -89,8 +90,8 @@ export default function Home() {
                 </div>
                 <Spacer y={3}></Spacer>
                 <div>
-                    {Object.keys(profile.projects).map((x)=>{
-                        x=profile["projects"][x]
+                    {Object.keys(personal_user_data.projects).map((x)=>{
+                        x=personal_user_data["projects"][x]
                         return (
                             <>
                             <Card isPressable css={{}}>

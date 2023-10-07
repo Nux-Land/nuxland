@@ -34,7 +34,7 @@ export default function Home() {
     const [server_details,setServerDetails]=useState({"name":"","owner":"","collaborators":"","files":{},
     "live":{},"channels":[],"fund_target":0,"fund_done":0,
     "meeting_id":"","versions":{},"votes":0,"roles":[],
-    "visibility":true})
+    "visibility":true,"description":""})
     var [is_opened__,set_is_opened__]=useState({"opened":false,"auth":false})
     var send_msg=""
     connect_ws(is_opened__,set_is_opened__)
@@ -86,6 +86,13 @@ export default function Home() {
                 </>
             )
         } else {
+            if (opened_channel=="files") {
+                return (
+                    <>
+                    
+                    </>
+                )
+            }
             return (
                 <>
                 <div className="wrapper" style={{height:"100vh",width:"80vw"}}>

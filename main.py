@@ -10,6 +10,7 @@ nodes=litedb.get_conn("nodes")
 users=litedb.get_conn("users")
 projects=litedb.get_conn("projects")
 channels=litedb.get_conn("channels")
+invites=litedb.get_conn("invites")
 
 class Message:
     def __init__(self,sender,content,timestamp) -> None:
@@ -29,7 +30,7 @@ class Channel:
         return {"id":self.id,"name":self.name,"messages":messages_json}
 
 class Project:
-    def __init__(self,owner,name,visibility):
+    def __init__(self,owner,name,visibility,description):
         self.name=name
         self.owner=owner
         self.collaborators=[owner]
@@ -37,6 +38,7 @@ class Project:
         self.live=""
         new_channels=[Channel("general")]
         self.channels=[x.name+"|"+x.id for x in new_channels]
+        self.description=description
         for x in new_channels:
             channels.set(x.name+"|"+x.id,x.json())
         self.fund_target=0
@@ -50,7 +52,7 @@ class Project:
         return {"name":self.name,"owner":self.owner,"collaborators":self.collaborators,"files":self.files,
                 "live":self.live,"channels":self.channels,"fund_target":self.fund_target,"fund_done":self.fund_done,
                 "meeting_id":self.meeting_id,"versions":self.versions,"votes":self.votes,"roles":self.roles,
-                "visibility":self.visibility}
+                "visibility":self.visibility,"description":self.description}
 
 class User:
     def __init__(self,name,password,skills=[],image="",address="",date_joined="") -> None:
@@ -148,6 +150,7 @@ async def client_thread(websocket: wsclient.ClientConnection):
                 if user_name not in users_list:
                     users.set(user_name,User(user_name,password,image=image).json())
                     users.set("users",users_list+[user_name])
+                    invites.set(user_name,[])
                     user_details=User(user_name,password)
                     await websocket.send("true")
                     connections[id]["auth"]=True
@@ -171,6 +174,80 @@ async def client_thread(websocket: wsclient.ClientConnection):
                 if connections[id]["auth"]==True:
                     username_=message[1]
                     user_data=users.get(username_)
+                    new_projects={}
+                    for x in user_data["projects"].copy():
+                        new_projects[x]={"name":x,"description":projects.get(x)["description"]}
+                    user_data["projects"]=new_projects
+                    user_data["invites"]=invites.get(username_)
+                    time.sleep(0.01)
+                    try:
+                        await websocket.send(json.dumps(user_data))
+                    except Exception as e:
+                        await websocket.send("{}")
+                else:
+                    await websocket.send("{}")
+            elif message[0]=="send_invite":
+                if connections[id]["auth"]==True:
+                    project_id=message[1]
+                    user_account_id=projects.get(project_id)["owner"]
+                    user_account=invites.get(user_account_id)
+                    user_account.append({"username":user_name,"project_id":project_id})
+                    invites.set(user_account_id,user_account)
+                    await websocket.send("true")
+                else:
+                    await websocket.send("{}")
+            elif message[0]=="accept_invite":
+                if connections[id]["auth"]==True:
+                    project_id=message[1]
+                    user_account_id=message[2]
+                    project_data=projects.get(project_id)
+                    project_data["collaborators"].append(user_account_id)
+                    user_account=users.get(user_account_id)
+                    pending_invites=[]
+                    your_data=invites.get(project_data["owner"])
+                    for x in your_data.copy():
+                        if x["project_id"]==project_id and x["username"]==user_account_id:
+                            pass
+                        else:
+                            pending_invites.append(x)
+                    your_data=pending_invites
+                    print(your_data)
+                    invites.set(project_data["owner"],your_data)
+                    print(users.get(project_data["owner"]))
+                    user_account["projects"].append(project_id)
+                    projects.set(project_id,project_data)
+                    users.set(user_account_id,user_account)
+                    await websocket.send("true")
+                else:
+                    await websocket.send("{}")
+            elif message[0]=="reject_invite":
+                if connections[id]["auth"]==True:
+                    project_id=message[1]
+                    project_data=projects.get(project_id)
+                    user_account_id=message[2]
+                    your_data=users.get(project_data["owner"])
+                    pending_invites=[]
+                    for x in your_data["invites"].copy():
+                        if x["project_id"]==project_id and x["username"]==user_account_id:
+                            pass
+                        else:
+                            pending_invites.append(x)
+                    your_data["invites"]=pending_invites
+                    users.set(project_data["owner"],your_data)
+                    await websocket.send("true")
+                else:
+                    await websocket.send("{}")
+            elif message[0]=="open_projects":
+                if connections[id]["auth"]==True:
+                    username_=message[1]
+                    user_data=users.get(username_)
+                    new_projects={}
+                    for x in projects.get("projects_list"):
+                        project_data=projects.get(x)
+                        if (project_data["visibility"]):
+                            new_projects[x]={"name":x,"descripton":project_data["description"]}
+                    user_data["projects"]=new_projects
+                    user_data["invites"]=invites.get(username_)
                     time.sleep(0.01)
                     try:
                         await websocket.send(json.dumps(user_data))
@@ -179,6 +256,7 @@ async def client_thread(websocket: wsclient.ClientConnection):
                 else:
                     await websocket.send("{}")
             elif message[0]=="create_project":
+                print(message)
                 if connections[id]["auth"]==True:
                     project_name=message[1]
                     user_data=users.get(user_name)
@@ -192,7 +270,7 @@ async def client_thread(websocket: wsclient.ClientConnection):
                         projects.set("projects_list",projects_list)
                         user_data["projects"].append(project_name)
                         users.set(user_name,user_data)
-                        projects.set(project_name,Project(user_name,project_name,True).json())
+                        projects.set(project_name,Project(user_name,project_name,True,message[2]).json())
                         await websocket.send("true")
                 else:
                     await websocket.send("false")

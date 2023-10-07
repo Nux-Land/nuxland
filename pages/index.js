@@ -38,7 +38,7 @@ export default function Home() {
         "id":"",
         "address":"",
         "skills":[],
-        "projects":[],
+        "projects":{},
         "respect":0,
         "image":base_img,
         "date_joined":"",
@@ -68,7 +68,7 @@ export default function Home() {
                 setProfile(parsed_data)
             }
 
-            await send("profile/"+cookie_get("username"))
+            await send(((selected_feature=="Open Projects") ? "open_projects" : "profile") +"/"+cookie_get("username"))
             var data=await recv()
             var parsed_data=JSON.parse(data)
             if (JSON.stringify(parsed_data)!="{}") {
@@ -76,9 +76,9 @@ export default function Home() {
             }
         },400)
         return ()=>{clearTimeout(timeout)}
-    },[is_opened])
+    },[is_opened["auth"],is_opened["connected"]])
     function get_feature_ui() {
-        if (selected_feature=="Projects") {
+        if (selected_feature=="Projects" || selected_feature=="Open Projects") {
             return (
                 <>
                 <Spacer y={.5}></Spacer>
@@ -89,7 +89,8 @@ export default function Home() {
                 </div>
                 <Spacer y={3}></Spacer>
                 <div>
-                    {profile.projects.map((x)=>{
+                    {Object.keys(profile.projects).map((x)=>{
+                        x=profile["projects"][x]
                         return (
                             <>
                             <Card isPressable css={{}}>
@@ -99,18 +100,68 @@ export default function Home() {
                                     </div>
                                     <Spacer></Spacer>
                                     <div style={{width:"10vw"}}>
-                                    <Text h3>{x}</Text>
+                                    <Text h3>{x.name}</Text>
                                     </div>
                                     <div style={{width:"20vw",marginLeft:"25vw"}}>
-                                        <Button css={{width:"20%",float:"right"}} onClick={()=>{
-                                            window.location=window.location+("/chat?id="+x)
-                                        }}>Open</Button>
+                                        <Button css={{width:"20%",float:"right"}} onClick={async ()=>{
+                                            if (!((selected_feature=="Open Projects"))) {
+                                                window.location=window.location+("/chat?id="+x.name)
+                                            } else {
+                                                await send("send_invite/"+x.name)
+                                                console.log(await recv(),"send_invite")
+                                            }
+                                        }}>{(selected_feature=="Open Projects") ? "Join" : "Open"}</Button>
                                     </div>
-                                    <Spacer x={.5}></Spacer>
-                                    <div style={{width:"20vw"}}>
-                                        <Button css={{width:"20%",float:"right"}} color={"error"}>Leave</Button>
+                                    {(()=>{
+                                        if (!((selected_feature=="Open Projects"))) {
+                                            return (
+                                                <>
+                                                <Spacer x={.5}></Spacer>
+                                                <div style={{width:"20vw"}}>
+                                                    <Button css={{width:"20%",float:"right"}} color={"error"}>Leave</Button>
+                                                </div>
+                                                </>
+                                            )
+                                        }
+                                    })()}
+                                </Card.Header>
+                                <Card.Body>
+                                    {x["description"]}
+                                </Card.Body>
+                            </Card>
+                            <Spacer></Spacer>
+                            </>
+                        )
+                    })}
+                </div>
+                </>
+            )
+        } else if (selected_feature=="Invites") {
+            return (
+                <>
+                <div>
+                    {profile.invites.map((x)=>{
+                        return (
+                            <>
+                            <Card isPressable css={{}}>
+                                <Card.Header css={{width:"100%"}}>
+                                    <div style={{width:"5vw"}}>
+                                        <img src={base_img} height={"40vw"}></img>
+                                    </div>
+                                    <Spacer></Spacer>
+                                    <div style={{width:"10vw"}}>
+                                    <Text h3>{x.project_id}</Text>
+                                    </div>
+                                    <div style={{width:"20vw",marginLeft:"25vw"}}>
+                                        <Button css={{width:"20%",float:"right"}} onClick={async ()=>{
+                                            await send("accept_invite/"+x.project_id+"/"+x.username)
+                                            console.log(await recv())
+                                        }}>Accept</Button>
                                     </div>
                                 </Card.Header>
+                                <Card.Body>
+                                    <Text h3 color="primary">{x.username}</Text>
+                                </Card.Body>
                             </Card>
                             <Spacer></Spacer>
                             </>
@@ -196,7 +247,7 @@ export default function Home() {
                                     <Text h3 css={{fontWeight:400}} className="vertical">Date Joined</Text>
                                 </Card.Header>
                                 <Card.Body css={{"marginTop":"-4vh"}}>
-                                    <Text h3 color="primary">{profile["date_joined"]}</Text>
+                                    <Text h3 color="primary">{profile["date_joined"].slice(0,"2023-10-08".length)}</Text>
                                 </Card.Body>
                             </Card>
                             <Spacer y={.5} x={0.5}></Spacer>
@@ -210,33 +261,10 @@ export default function Home() {
                             </Card>
                         </Row>
                         <Spacer></Spacer>
-                        <Row>
-                        <Card css={{padding:"$2"}}>
-                                <Card.Header>
-                                    <Text h3 css={{fontWeight:400}} className="vertical">Skills</Text>
-                                </Card.Header>
-                                <Card.Body css={{"marginTop":"-4vh",height:"35vh"}}>
-                                    {profile["skills"].slice(0,6).map((x)=>{
-                                        return <Text h3 color="primary">{x}</Text>
-                                    })}
-                                </Card.Body>
-                            </Card>
-                            <Spacer y={.5} x={0.5}></Spacer>
-                            <Card css={{padding:"$2"}}>
-                                <Card.Header>
-                                    <Text h3 css={{fontWeight:400}} className="vertical">Projects</Text>
-                                </Card.Header>
-                                <Card.Body css={{"marginTop":"-4vh",height:"35vh"}}>
-                                    {profile["projects"].slice(0,6).map((x)=>{
-                                        return <Text h3 color="primary">{x}</Text>
-                                    })}
-                                </Card.Body>
-                            </Card>
-                        </Row>
                     </div>
                     <div style={{height:"100vh",width:"69vw",backdropFilter:"blur(2.5px)",padding:"1vw"}}>
                         <div style={{height:"7.5vh",width:"100%",backgroundColor:"#000"}} className="wrapper">
-                            {["Open Projects","Projects","Current Projects","Invites"].map((x)=>{
+                            {["Open Projects","Projects","Invites"].map((x)=>{
                                 return <a style={{marginRight:"2.5vw"}} onClick={()=>{
                                     setSelected_Feature(x)
                                 }}>
@@ -269,10 +297,18 @@ export default function Home() {
                                 id="project_name"
                             ></Input>
                         </div>
+                        <div className="wrapper">
+                            <Input underlined 
+                                bordered 
+                                placeholder="Description" 
+                                width="70%" 
+                                id="description"
+                            ></Input>
+                        </div>
                         <Spacer></Spacer>
                         <div className="wrapper">
                             <Button css={{width:"50%"}} onClick={()=>{
-                                send("create_project/"+document.getElementById("project_name").value)
+                                send("create_project/"+document.getElementById("project_name").value+"/"+document.getElementById("description").value)
                                 setInterval(()=>{
                                     (()=>{
                                         window.location=window.location

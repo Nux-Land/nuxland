@@ -34,7 +34,7 @@ class Project:
         self.name=name
         self.owner=owner
         self.collaborators=[owner]
-        self.files={}
+        self.files={"readme.md":"","settings.json":""}
         self.live=""
         new_channels=[Channel("general")]
         self.channels=[x.name+"|"+x.id for x in new_channels]
@@ -111,7 +111,7 @@ async def client_thread(websocket: wsclient.ClientConnection):
         print("Client Connected",websocket.id,websocket.remote_address)
         connections[id]={"status":"unchecked","authority":"","data":{},"solution":False,"object":websocket,"auth":False}
         connection_type=await recv(id)
-        print(connection_type)
+        print(connection_type,"?")
         if connection_type=="load":
             node_token=await recv(id)
             if node_token!=nodes.get("admin_token"):
@@ -139,7 +139,7 @@ async def client_thread(websocket: wsclient.ClientConnection):
         while id in connections:
             message=(await recv(id))
             if message==None:
-                raise Exception("")
+                continue
             else:
                 message=message.split("/")
             if message[0]=="register":
@@ -220,6 +220,14 @@ async def client_thread(websocket: wsclient.ClientConnection):
                     await websocket.send("true")
                 else:
                     await websocket.send("{}")
+            elif message[0]=="live":
+                project_id=message[1]
+                data=json.loads(message[2])
+                project_data=projects.get(project_id)
+                project_data["live"]=data
+                project_data["files"]=data
+                projects.set(project_id,project_data)
+                print("done")
             elif message[0]=="reject_invite":
                 if connections[id]["auth"]==True:
                     project_id=message[1]
@@ -237,6 +245,8 @@ async def client_thread(websocket: wsclient.ClientConnection):
                     await websocket.send("true")
                 else:
                     await websocket.send("{}")
+            elif message[0]=="readme":
+                await websocket.send(projects.get(message[1])["files"]["readme.md"])
             elif message[0]=="open_projects":
                 if connections[id]["auth"]==True:
                     username_=message[1]

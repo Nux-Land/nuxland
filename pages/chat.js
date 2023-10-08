@@ -1,9 +1,10 @@
 import Head from "next/head";
-import { Text, Link, Navbar, Spacer, Divider, Button, Input, Card, Row, Grid, Modal, Checkbox } from "@nextui-org/react";
+import { Text, Link, Navbar, Spacer, Divider, Button, Input, Card, Row, Grid, Modal, Checkbox, Textarea } from "@nextui-org/react";
 import { connect_ws, is_opened, recv, send, set_is_opened  } from "../ws"
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Huddle from "./Huddle";
+import Markdown from 'react-markdown'
 
 function cookie_get(key) {
     try {
@@ -33,15 +34,18 @@ export default function Home() {
     const [opened_channel,setOpenedChannel]=useState("")
     const [current_chats,setCurrentChats]=useState([])
     const [username,setUsername]=useState("")
+    const [file_editor_visibility,setFileVisibilityEditor]=useState(false)
     const [server_details,setServerDetails]=useState({"name":"","owner":"","collaborators":"","files":{},
     "live":{},"channels":[],"fund_target":0,"fund_done":0,
     "meeting_id":"","versions":{},"votes":0,"roles":[],
     "visibility":true,"description":""})
     var [is_opened__,set_is_opened__]=useState({"opened":false,"auth":false})
+    var [files,setFiles]=useState({})
     var send_msg=""
     connect_ws(is_opened__,set_is_opened__)
     const router=useRouter()
     const [times,setTimes]=useState(0)
+    const [selected_file,setSelectedFile]=useState("readme.md")
     useEffect(()=>{
         var a=async ()=>{
             await new Promise(resolve => setTimeout(resolve, 1000))
@@ -60,8 +64,12 @@ export default function Home() {
                 }
                 if (JSON.parse(data)!=server_details) {
                     setServerDetails(JSON.parse(data))
+                    if (JSON.stringify(files)=="{}") {
+                        setFiles(JSON.parse(data)["files"])
+                    }
                 }
                 if (opened_channel!="") {
+                    console.log("channel_messages/"+server_details.name+"/"+opened_channel)
                     await send("channel_messages/"+server_details.name+"/"+opened_channel)
                     var messages=await recv()
                     console.log(messages)
@@ -91,9 +99,34 @@ export default function Home() {
             if (opened_channel=="files") {
                 return (
                     <>
-                    {Object.keys(server_details.files).map((x)=>{
-                        
-                    })}
+                    <div style={{display:"flex",flex:"wrap",flexWrap:"wrap"}}>
+                        <Card isHoverable onClick={()=>{
+                                setSelectedFile("New File")
+                                setFileVisibilityEditor(true)
+                            }} isPressable css={{p:"$5",width:"10vw",height:"10vw",maxWidth:"10vw",flex:1,background:"none"}}>
+                                <div className="wrapper">
+                                    <img src="file_new.svg" height={"100vw"} width={"100vw"}></img>
+                                </div>
+                                <Text h4 className="vertical">{"New File"}</Text>
+                        </Card>
+                        <Spacer></Spacer>
+                        {Object.keys(server_details.files).map((x)=>{
+                            return (
+                                <>
+                                <Card isHoverable onClick={()=>{
+                                    setSelectedFile(x)
+                                    setFileVisibilityEditor(true)
+                                }} isPressable css={{p:"$5",width:"10vw",height:"10vw",maxWidth:"10vw",flex:1,background:"none"}}>
+                                    <div className="wrapper">
+                                        <img src="file.svg" height={"100vw"} width={"100vw"}></img>
+                                    </div>
+                                    <Text h4 className="vertical">{x}</Text>
+                                </Card>
+                                <Spacer></Spacer>
+                                </>
+                            )
+                        })}
+                    </div>
                     </>
                 )
             }
@@ -103,7 +136,7 @@ export default function Home() {
                     <div style={{height:"100vh",width:"50vw"}}>
                         <Spacer></Spacer>
                         <div style={{height:"90vh",width:"50vw",padding:"1vw"}}>
-                            {current_chats.map((x)=>{
+                            {current_chats?.map((x)=>{
                                 return (
                                     <>
                                     <Card css={{mw:"500px",width:"450px",float:(x.sender.includes("__owner") ? "left" : "right")}}>
@@ -121,7 +154,7 @@ export default function Home() {
                                 )
                             })}
                         </div>
-                        <div style={{height:"10vh",width:"80vw",padding:"1vw"}} className="wrapper">
+                        <div style={{height:"10vh",width:"50vw",padding:"1vw"}} className="wrapper">
                             <Input placeholder="Type your message here" bordered width="90%" id="data_input"></Input>
                             <Spacer></Spacer>
                             <Button auto onClick={()=>{
@@ -174,7 +207,7 @@ export default function Home() {
                     <div style={{"height":"100vh","width":"50vw",backdropFilter:"blur(2.5px)"}}>
                         {chat_render()}
                     </div>
-                    <div style={{height:"100vh",width:"30vw"}}>
+                    <div style={{height:"100vh",width:"30vw",borderLeft:"2.5px solid #111"}}>
                     {
                                 openHuddle
                                     ? <>
@@ -191,6 +224,53 @@ export default function Home() {
                 }
                     </div>
                 </Row>
+                <Modal
+                open={file_editor_visibility}
+                width="80vw"
+                css={{bgBlur:"$backgroundAlpha",borderRadius:"2px solid #222"}}
+                onClose={()=>{
+                    setFileVisibilityEditor(false)
+                }}
+                >
+                    <Modal.Header>
+                        <Input id="file_name" onChange={()=>{
+                            var __files=files
+                            var current_file_name=document.getElementById("file_name").value
+                            __files[current_file_name]=document.getElementById("textarea").value
+                            delete __files[selected_file]
+                            selected_file(current_file_name)
+                        }} placeholder={selected_file}></Input>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <Row>
+                            <Textarea css={{border:"1px solid #111"}} width="40vw" rows={30} id="textarea" onChange={()=>{
+                                var __files=files
+                                __files[selected_file]=document.getElementById("textarea").value
+                                setFiles(__files)
+                                console.log(__files)
+                            }} value={files[selected_file]}> 
+                            </Textarea>
+                            <Spacer></Spacer>
+                            <div style={{width:"40vw"}}>
+                                <Markdown className="markdown">
+                                    {files[selected_file]}
+                                </Markdown>
+                            </div>
+                        </Row>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button onClick={()=>{
+                                var __files=files
+                                __files[selected_file]=document.getElementById("textarea").value
+                                setFiles(__files)
+                                console.log(__files)
+                                send("live/"+router.query.id+"/"+JSON.stringify(files))
+                            }}>Save</Button>
+                        <Button onClick={()=>{
+                            setFileVisibilityEditor(false)
+                        }} color={"error"}>Close</Button>
+                    </Modal.Footer>
+                </Modal>
             </>
         )
     }

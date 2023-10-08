@@ -2,7 +2,7 @@ import axios from "axios"
 import { useState } from "react"
 var debug=true
 
-var websocket=false
+export var websocket=false
 var last_message={"id":"","data":""}
 export var [is_opened,set_is_opened]=[0,0]
 
@@ -48,7 +48,7 @@ export async function connect_ws(is_opened_,set_is_opened_) {
                 websocket.send("client")
                 if (cookie_get("logged_in")=="true") {
                     websocket.send("login/"+cookie_get("username")+"/"+cookie_get("password"))
-                    if (await recv()=="false") {
+                    if (await recv()=="false" && !("login/"+cookie_get("username")+"/"+cookie_get("password").includes("undefined"))) {
                         set_is_opened({"opened":true,"auth":false})
                         cookie_set("logged_in","")
                     } else {
@@ -65,6 +65,7 @@ export async function connect_ws(is_opened_,set_is_opened_) {
             last_message["id"]=crypto.randomUUID()
         })
         websocket.addEventListener("close",()=>{
+            console.log("band ho gya")
             set_is_opened({"opened":false,"auth":false})
             websocket=false
         })
@@ -85,9 +86,10 @@ export async function recv() {
 export async function send(data) {
     while (true) {
         try {
-            websocket.send(data)
+            await websocket.send(data)
             break
-        } catch {
+        } catch(e) {
+            console.error(e)
             await connect_ws()
             await await new Promise(r => setTimeout(r, 100))
         }

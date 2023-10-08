@@ -1,8 +1,9 @@
 import Head from "next/head";
 import { Text, Link, Navbar, Spacer, Divider, Button, Input, Card, Row, Grid, Modal, Checkbox } from "@nextui-org/react";
-import { connect_ws, is_opened, recv, send, set_is_opened  } from "../ws"
+import { connect_ws, is_opened, recv, send, set_is_opened, websocket  } from "../ws"
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import Markdown from 'react-markdown'
 
 function cookie_get(key) {
     try {
@@ -33,6 +34,7 @@ export default function Home() {
     const [auth_type,setAuthType]=useState("login")
     const [first,setFirst]=useState(true)
     const [selected_feature,setSelected_Feature]=useState("Projects")
+    const [project_readme,changeProjectReadme]=useState({name:"","readme":"","visibility":false})
     var profile_base={
         "name":"",
         "id":"",
@@ -50,9 +52,7 @@ export default function Home() {
     useEffect(()=>{
         var timeout=setTimeout(async ()=>{
             clearTimeout(timeout)
-            while (is_opened==0 || is_opened["opened"]==false) {
-                await new Promise(r => setTimeout(r, 100))
-            }
+            await new Promise(r => setTimeout(r, 500))
             if (router.query.username==undefined) {
                 await send("profile"+"/"+cookie_get("username"))
             } else {
@@ -77,7 +77,7 @@ export default function Home() {
             }
         },400)
         return ()=>{clearTimeout(timeout)}
-    },[is_opened["auth"],is_opened["connected"],selected_feature])
+    },[is_opened["auth"],is_opened["open"],selected_feature])
     function get_feature_ui() {
         if (selected_feature=="Projects" || selected_feature=="Open Projects") {
             return (
@@ -94,7 +94,17 @@ export default function Home() {
                         x=personal_user_data["projects"][x]
                         return (
                             <>
-                            <Card isPressable css={{}}>
+                            <Card isPressable css={{}} onClick={()=>{
+                                var interval=setInterval(async ()=>{
+                                    clearInterval(interval)
+                                    send("readme/"+x.name).then(()=>{
+                                        const y=x.name
+                                        recv().then((x)=>{
+                                            changeProjectReadme({"name":y,"readme":x,"visibility":true})
+                                        })
+                                    })
+                                },500)
+                            }}>
                                 <Card.Header css={{width:"100%"}}>
                                     <div style={{width:"5vw"}}>
                                         <img src={base_img} height={"40vw"}></img>
@@ -177,7 +187,7 @@ export default function Home() {
         return (
             <>
                 <Head>
-                    <title>Nuxland {is_opened["auth"]}</title>
+                    <title>Nuxland {is_opened["auth"]} {is_opened["opened"]}</title>
                 </Head>
                 <div style={{height:"100vh",width:"100vw"}} className="wrapper">
                     <div style={{padding:"4vw",width:"62.5vw",backdropFilter:"blur(0.55vh)",border:"solid 1px #222",borderRadius:"20px"}}>
@@ -318,6 +328,25 @@ export default function Home() {
                             }}>Create Project</Button>
                         </div>
                     </Modal.Body>
+                </Modal>
+                <Modal
+                onClose={()=>{
+                    changeProjectReadme({"name":project_readme["name"],"readme":project_readme["readme"],"visibility":false})
+                }}
+                open={project_readme["visibility"]}
+                width="75vw"
+                >
+                    <Modal.Header>
+                        <Text h2 className="vertical">{project_readme["name"]}</Text>
+                    </Modal.Header>
+                    <Modal.Body css={{backgroundColor:"black",borderRadius:"20px",marginLeft:"2vw",marginRight:"2vw",padding:"2vw"}}>
+                        <Markdown>
+                            {project_readme["readme"]}
+                        </Markdown>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button color={"success"}>Fund this project</Button>
+                    </Modal.Footer>
                 </Modal>
             </>
         )

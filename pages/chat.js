@@ -3,6 +3,7 @@ import { Text, Link, Navbar, Spacer, Divider, Button, Input, Card, Row, Grid, Mo
 import { connect_ws, is_opened, recv, send, set_is_opened  } from "../ws"
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import Huddle from "./Huddle";
 
 function cookie_get(key) {
     try {
@@ -28,6 +29,7 @@ function cookie_set(key,val) {
 
 export default function Home() {
     const [project_create_modal,setProjectCreateModalVisibility]=useState(false)
+    const [openHuddle, setOpenHuddle] = useState(false)
     const [opened_channel,setOpenedChannel]=useState("")
     const [current_chats,setCurrentChats]=useState([])
     const [username,setUsername]=useState("")
@@ -74,7 +76,7 @@ export default function Home() {
         if (opened_channel=="") {
             return (
                 <>
-                <div className="wrapper" style={{height:"100vh",width:"80vw"}}>
+                <div className="wrapper" style={{height:"100vh",width:"50vw"}}>
                     <div>
                         <div className="wrapper">
                             <img src={base_img}></img>
@@ -95,10 +97,10 @@ export default function Home() {
             }
             return (
                 <>
-                <div className="wrapper" style={{height:"100vh",width:"80vw"}}>
-                    <div style={{height:"100vh",width:"80vw"}}>
+                <div className="wrapper" style={{height:"100vh",width:"50vw"}}>
+                    <div style={{height:"100vh",width:"50vw"}}>
                         <Spacer></Spacer>
-                        <div style={{height:"90vh",width:"80vw",padding:"1vw"}}>
+                        <div style={{height:"90vh",width:"50vw",padding:"1vw"}}>
                             {current_chats.map((x)=>{
                                 return (
                                     <>
@@ -167,8 +169,24 @@ export default function Home() {
                         </div>
                         
                     </div>
-                    <div style={{"height":"100vh","width":"80vw",backdropFilter:"blur(2.5px)"}}>
+                    <div style={{"height":"100vh","width":"50vw",backdropFilter:"blur(2.5px)"}}>
                         {chat_render()}
+                    </div>
+                    <div style={{height:"100vh",width:"30vw"}}>
+                    {
+                                openHuddle
+                                    ? <>
+                                        <Button color="error" style={{ position: "absolute", right: 20, bottom: 20, zIndex: 20, minWidth: "max-content", padding: "0px 25px" }} onClick={() => { setOpenHuddle(false) }}>Exit</Button>
+                                        <Huddle id={server_details.meeting_id} project={router.query.id} />
+                                    </>
+                                    : (
+                                        <>
+                                        <div className="wrapper" style={{height:"100vh",backdropFilter:"blur(2.5px)"}}>
+                                        <Button color="primary" onClick={() => { setOpenHuddle(true) }}>Create Meeting</Button>
+                                        </div>
+                                        </>
+                                    )
+                }
                     </div>
                 </Row>
             </>

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@huddle01/iframe": "^0.0.10",
     "@nextui-org/react": "^1.0.0-beta.10",
     "axios": "^1.5.0",
     "next": "12.3.0",

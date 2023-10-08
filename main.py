@@ -305,6 +305,11 @@ async def client_thread(websocket: wsclient.ClientConnection):
                         await websocket.send("false")
                 else:
                     await websocket.send("false")
+            elif message[0]=="meeting":
+                project_id=message[1]
+                project_data=projects.get(project_id)
+                project_data["meeting_id"]=message[2]
+                projects.set(project_id,project_data)
             elif message[0]=="send_message":
                 if connections[id]["auth"]==True:
                     print(1)

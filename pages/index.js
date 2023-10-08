@@ -48,6 +48,7 @@ export default function Home() {
     }
     const [personal_user_data,set_personal_user_data]=useState(profile_base)
     const [profile,setProfile]=useState(profile_base)
+    const [search,setSearch]=useState("")
     const router=useRouter()
     useEffect(()=>{
         var timeout=setTimeout(async ()=>{
@@ -77,7 +78,7 @@ export default function Home() {
             }
         },400)
         return ()=>{clearTimeout(timeout)}
-    },[is_opened["auth"],is_opened["open"],selected_feature])
+    },[is_opened["auth"],is_opened["opened"],selected_feature])
     function get_feature_ui() {
         if (selected_feature=="Projects" || selected_feature=="Open Projects") {
             return (
@@ -89,9 +90,18 @@ export default function Home() {
                     }}>Create Project</Button>
                 </div>
                 <Spacer y={3}></Spacer>
+                <div style={{marginLeft:"2vw",marginTop:"-7vh"}}>
+                    <Input placeholder="Search" width="50%" id="search" onChange={()=>{
+                        setSearch(document.getElementById("search").value)
+                    }}></Input>
+                </div>
+                <Spacer></Spacer>
                 <div>
                     {Object.keys(personal_user_data.projects).map((x)=>{
                         x=personal_user_data["projects"][x]
+                        if (!(JSON.stringify(x).toLowerCase().includes(search))) {
+                            return
+                        }
                         return (
                             <>
                             <Card isPressable css={{}} onClick={()=>{
@@ -272,6 +282,25 @@ export default function Home() {
                             </Card>
                         </Row>
                         <Spacer></Spacer>
+                        {(()=>{
+                            if (JSON.stringify(profile)!==JSON.stringify(profile_base)) {
+                                return (
+                                    <>
+                                    <Row>
+                                    <Card css={{padding:"$2"}}>
+                                            <Card.Header>
+                                                <Text h3 css={{fontWeight:400}} className="vertical">Skills</Text>
+                                            </Card.Header>
+                                            <Card.Body css={{"marginTop":"-4vh",height:"35vh"}}>
+                                                {profile["skills"].slice(0,6).map((x)=>{
+                                                    return <Text h3 color="primary">{x}</Text>
+                                                })}
+                                            </Card.Body>
+                                        </Card>
+                                    </Row>
+                                    </>
+                                )}
+                        })()}
                     </div>
                     <div style={{height:"100vh",width:"69vw",backdropFilter:"blur(2.5px)",padding:"1vw"}}>
                         <div style={{height:"7.5vh",width:"100%",backgroundColor:"#000"}} className="wrapper">

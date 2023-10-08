@@ -100,7 +100,7 @@ export default function MainComp() {
                 {
                     isConnected
                         ? <div>
-
+                            
                         </div>
                         : <WalletFallback />
                 }

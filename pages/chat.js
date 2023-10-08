@@ -91,7 +91,9 @@ export default function Home() {
             if (opened_channel=="files") {
                 return (
                     <>
-                    
+                    {Object.keys(server_details.files).map((x)=>{
+                        
+                    })}
                     </>
                 )
             }
@@ -182,7 +184,7 @@ export default function Home() {
                                     : (
                                         <>
                                         <div className="wrapper" style={{height:"100vh",backdropFilter:"blur(2.5px)"}}>
-                                        <Button color="primary" onClick={() => { setOpenHuddle(true) }}>Create Meeting</Button>
+                                        <Button color="primary" onClick={() => { setOpenHuddle(true) }}>{(server_details.meeting_id=="") ? "Create Meeting" : "Join Meeting"}</Button>
                                         </div>
                                         </>
                                     )

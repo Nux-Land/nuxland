@@ -9,7 +9,8 @@ import { Text } from "@nextui-org/react";
 import bg from "../public/bg.png"
 
 export default function Huddle(props) {
-    connect_ws()
+    var [is_opened__,set_is_opened__]=useState({"opened":false,"auth":false})
+    connect_ws(is_opened__,set_is_opened__)
     const [roomId, setRoomId] = useState();
     const roomIdRef = useRef(roomId);
     const [isLoading, setIsLoading] = useState(true);
@@ -53,10 +54,10 @@ export default function Huddle(props) {
 
     useEffect(() => {
         (async () => {
-            if (id=="") {
+            if (props.id=="") {
                 await CreateIframe();
             } else {
-                setRoomId(id)
+                setRoomId(props.id)
                 setIsLoading(false)
                 setLoadMsg(null)
             }

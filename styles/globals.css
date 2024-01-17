@@ -355,6 +355,8 @@ opacity: 0.7;
 .markdown {
   background-color: #16181a;
   height: 45vw;
+  overflow-y: auto;
+  overflow-x: hidden;
   border-radius: 20px;
   padding: 1vh
 }
